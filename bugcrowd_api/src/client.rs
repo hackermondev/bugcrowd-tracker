@@ -29,7 +29,7 @@ impl BugcrowdApi {
 
         let client = ClientBuilder::new()
             .default_headers(default_headers)
-            // .http2_prior_knowledge()
+            .http2_prior_knowledge()
             .build()
             .unwrap();
 

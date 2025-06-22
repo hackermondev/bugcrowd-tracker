@@ -18,6 +18,7 @@ pub async fn send_webhook(webhook: &Webhook, embed: Embed) -> Result<(), anyhow:
     static REQUEST_CLIENT: LazyLock<Client> = LazyLock::new(|| {
         ClientBuilder::new()
             .timeout(Duration::from_secs(5))
+            .http2_prior_knowledge()
             .build()
             .unwrap()
     });

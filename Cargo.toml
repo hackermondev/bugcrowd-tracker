@@ -10,4 +10,4 @@ members = [
 tokio = { version = "1.38.0", features = ["full"] }
 log = "0.4.27"
 anyhow = "1.0.98"
-reqwest = { version = "0.12.20", default-features = false, features = ["json", "rustls-tls", "rustls-tls-webpki-roots", "hickory-dns"] }
+reqwest = { version = "0.12.20", default-features = false, features = ["json", "http2", "rustls-tls", "rustls-tls-webpki-roots", "hickory-dns"] }
