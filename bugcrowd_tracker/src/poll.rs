@@ -60,3 +60,58 @@ pub mod hall_of_fame {
         }
     }
 }
+
+pub mod disclosed_reports {
+    use bugcrowd_api::{client::BugcrowdApi, models::DisclosedReport};
+    use log::debug;
+    use tokio::sync::mpsc::Sender;
+
+    use crate::store::DisclosedReportsStore;
+
+    pub struct Poller {
+        pub bugcrowd: BugcrowdApi,
+        pub store: DisclosedReportsStore,
+        pub program_handle: String,
+        pub channel: Sender<Event>,
+    }
+
+    #[derive(Debug)]
+    pub enum Event {
+        ReportDisclosed(DisclosedReport)
+    }
+
+    impl Poller {
+        pub async fn poll(&mut self) -> Result<(), anyhow::Error> {
+            debug!("polling disclosed reports");
+
+            let last_disclosed = self.store.last_disclosed_report().await?;
+            debug!("last_disclosed: {last_disclosed:?}");
+
+            if last_disclosed.is_none() {
+                let report = self.bugcrowd.last_disclosed_report(&self.program_handle).await?;
+                let last_disclosed_report = report.unwrap_or(DisclosedReport {
+                    id: String::from("0"),
+                    title: String::from("stub"),
+                    ..Default::default()
+                });
+                debug!("saving last disclosed report: {last_disclosed_report:?}");
+                self.store.set_last_disclosed_report(&last_disclosed_report).await?;
+                return Ok(())
+            }
+
+            let last_disclosed = last_disclosed.unwrap();
+            let new_disclosed = self.bugcrowd.disclosed_reports_after(&self.program_handle, &last_disclosed.id).await?;
+            if !new_disclosed.is_empty() {
+                let last_disclosed = new_disclosed.get(0).cloned().unwrap();
+                for disclosed in new_disclosed {
+                    debug!("new disclosed report: {disclosed:?}");
+                    self.channel.send(Event::ReportDisclosed(disclosed)).await?;
+                }
+                
+                self.store.set_last_disclosed_report(&last_disclosed).await?;
+            }
+            
+            Ok(())
+        }
+    }
+}

@@ -6,7 +6,7 @@ use reqwest::{
     header::{HeaderMap, HeaderValue},
 };
 
-use crate::models::{HallOfFame, Hero};
+use crate::models::{CrowdStream, DisclosedReport, HallOfFame, Hero};
 
 #[derive(Debug, Clone)]
 pub struct BugcrowdApi {
@@ -82,6 +82,58 @@ impl BugcrowdApi {
             })
             .collect();
         Ok(heros)
+    }
+
+    pub async fn last_disclosed_report(
+        &self,
+        program: &str,
+    ) -> Result<Option<DisclosedReport>, anyhow::Error> {
+        let url = format!(
+            "https://bugcrowd.com/engagements/{program}/crowdstream.json?page=1&filter_by=disclosures"
+        );
+        let response = self.request_client.get(url).send().await?;
+        let response = response.error_for_status()?;
+
+        let crowdstream = response.json::<CrowdStream>().await?;
+        let mut reports = crowdstream.results;
+        Ok(if !reports.is_empty() {
+            Some(reports.remove(0))
+        } else {
+            None
+        })
+    }
+
+    pub async fn disclosed_reports_after(
+        &self,
+        program: &str,
+        id: &str,
+    ) -> Result<Vec<DisclosedReport>, anyhow::Error> {
+        let mut reports = vec![];
+        let mut page = 1;
+
+        loop {
+            let url = format!(
+                "https://bugcrowd.com/engagements/{program}/crowdstream.json?page={page}&filter_by=disclosures"
+            );
+            let response = self.request_client.get(url).send().await?;
+            let response = response.error_for_status()?;
+
+            let crowdstream = response.json::<CrowdStream>().await?;
+            let range_end = crowdstream.results.iter().position(|r| r.id == id);
+            let found_initial_report = range_end.is_some();
+
+            let range_end = range_end.unwrap_or(crowdstream.results.len());
+            reports.append(&mut (crowdstream.results[..range_end]).to_vec());
+            page += 1;
+
+            if crowdstream.pagination_meta.total_count == reports.len() as u64
+                || found_initial_report
+            {
+                break;
+            }
+        }
+
+        Ok(reports)
     }
 }
 

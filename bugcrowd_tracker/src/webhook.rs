@@ -191,3 +191,79 @@ pub mod hall_of_fame {
         }
     }
 }
+
+pub mod disclosed_reports {
+    use chrono_humanize::HumanTime;
+    use log::{debug, error, info};
+    use tokio::sync::mpsc::{Sender, channel};
+    use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder, EmbedFooterBuilder};
+
+    use crate::{
+        poll::disclosed_reports::Event,
+        webhook::{Webhook, send_webhook},
+    };
+
+    pub fn background_channel(webhook: Webhook) -> Sender<Event> {
+        let (sender, mut receiver) = channel(1);
+        tokio::task::spawn(async move {
+            while let Some(event) = receiver.recv().await {
+                info!("recieved event {event:?}");
+                if let Err(error) = handle_event(&webhook, event).await {
+                    error!("failed to handle event {error:#?}");
+                    break;
+                }
+            }
+        });
+
+        sender
+    }
+    async fn handle_event(webhook: &Webhook, event: Event) -> Result<(), anyhow::Error> {
+        let embed = match event {
+            Event::ReportDisclosed(report) => {
+                let url = format!("https://bugcrowd.com{}", report.disclosure_report_url);
+                let reporter = if let Some(username) = report.researcher_username {
+                    format!("[**`{}`**](https://bugcrowd.com/{})", username, username)
+                } else {
+                    format!("Anonymous")
+                };
+                let severity = format!(
+                    "{} (P{})",
+                    priority_as_string(report.priority),
+                    report.priority
+                );
+                let bounty = report.amount.unwrap_or(String::from("Unknown"));
+
+                let embed = EmbedBuilder::new()
+                    .color(2368553)
+                    .title(report.title)
+                    .url(url)
+                    .field(EmbedFieldBuilder::new("Reporter", reporter))
+                    .field(EmbedFieldBuilder::new(
+                        "Target",
+                        report.target.unwrap_or(String::from("unknown")),
+                    ))
+                    .field(EmbedFieldBuilder::new("Severity", severity).inline())
+                    .field(EmbedFieldBuilder::new("Bounty Award", bounty).inline());
+
+                let reported = HumanTime::from(report.created_at);
+                let disclosed = HumanTime::from(report.disclosed_at);
+                let embed = embed.footer(EmbedFooterBuilder::new(format!("Reported {reported}, disclosed {disclosed}")));
+                embed.build()
+            }
+        };
+
+        debug!("sending embed: {embed:?}");
+        send_webhook(webhook, embed).await?;
+        Ok(())
+    }
+
+    fn priority_as_string(severity: u32) -> &'static str {
+        match severity {
+            1 => "Critical",
+            2 => "High",
+            3 => "Medium",
+            4 => "Low",
+            _ => "Informative",
+        }
+    }
+}

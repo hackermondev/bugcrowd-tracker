@@ -6,7 +6,7 @@ use log::{error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter};
 use twilight_model::id::Id;
 
-use crate::{config::Arguments, store::HallOfFameStore, webhook::Webhook};
+use crate::{config::Arguments, store::{DisclosedReportsStore, HallOfFameStore}, webhook::Webhook};
 
 mod breakdown;
 mod config;
@@ -23,10 +23,15 @@ async fn main() {
 
     let config = Arguments::parse();
     let bugcrowd_api = BugcrowdApi::new(config.bugcrowd_session_token);
-    let redis_client = redis::Client::open(config.redis).expect("Invalid Redis connection URI");
     let program_handle = config.engagement_handle;
     let webhook =
         extract_webhook(&config.discord_webhook_url).expect("Invalid Discord webhook URL");
+
+    let redis = redis::Client::open(config.redis).expect("Invalid Redis connection URI");
+    let redis = redis
+        .get_connection_manager()
+        .await
+        .expect("Failed to open Redis connection");
 
     let program_access = bugcrowd_api
         .has_program_access(&program_handle)
@@ -41,14 +46,11 @@ async fn main() {
 
     let mut polls = vec![];
 
+    // ==== Hall Of Fame ====
     {
-        let redis_connection = redis_client
-            .get_connection_manager()
-            .await
-            .expect("Failed to open Redis connection");
         let store = HallOfFameStore {
             program_handle: program_handle.clone(),
-            redis_connection,
+            redis_connection: redis.clone(),
         };
         let channel = webhook::hall_of_fame::background_channel(webhook.clone());
         let mut poller = poll::hall_of_fame::Poller {
@@ -63,7 +65,32 @@ async fn main() {
             info!("started polling hall of fame");
 
             loop {
-                poller.poll().await.expect("Hall of Fame poll failed");
+                poller.poll().await.expect("hall of fame poll failed");
+                tokio::time::sleep(POLL_INTERVAL).await;
+            }
+        }));
+    }
+
+    // ==== Crowdstream Disclosed Reports ====
+    {
+        let store = DisclosedReportsStore {
+            program_handle: program_handle.clone(),
+            redis_connection: redis.clone(),
+        };
+        let channel = webhook::disclosed_reports::background_channel(webhook.clone());
+        let mut poller = poll::disclosed_reports::Poller {
+            bugcrowd: bugcrowd_api.clone(),
+            store,
+            program_handle: program_handle.clone(),
+            channel,
+        };
+
+        const POLL_INTERVAL: Duration = Duration::from_secs(60 * 5);
+        polls.push(tokio::task::spawn(async move {
+            info!("started polling Crowdstream disclosed reports");
+
+            loop {
+                poller.poll().await.expect("Crowdstream disclosed reports poll failed");
                 tokio::time::sleep(POLL_INTERVAL).await;
             }
         }));

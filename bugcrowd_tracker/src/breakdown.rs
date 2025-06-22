@@ -3,7 +3,7 @@ static HIGH: i32 = 20;
 static MODERATE: i32 = 10;
 static LOW: i32 = 5;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct PointsBreakdown {
     critical_bounty: i32,
     high_bounty: i32,
@@ -67,7 +67,7 @@ pub fn calculate_points_breakdown(mut points: i32) -> Option<PointsBreakdown> {
         index += 1;
     }
 
-    if points != 0 {
+    if points != 0 || breakdown == PointsBreakdown::default() {
         return None;
     }
 
