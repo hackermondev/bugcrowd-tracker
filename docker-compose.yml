@@ -1,0 +1,27 @@
+services:
+  redis:
+    image: redis:alpine
+    hostname: redis
+    restart: always
+    volumes:
+      - db_data:/data
+    expose:
+      - "6379"
+
+  bugcrowd-tracker:
+    depends_on:
+      - redis
+    links:
+      - redis
+    image: bugcrowd_tracker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+    env_file: .env
+    restart: unless-stopped
+    command: ["/usr/local/bin/bugcrowd_tracker"]
+
+volumes:
+  db_data:
