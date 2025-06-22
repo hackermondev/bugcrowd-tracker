@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+rust-version = "1.87"
+members = [
+    "bugcrowd_api",
+    "bugcrowd_tracker"
+]
+
+[workspace.dependencies]
+tokio = { version = "1.38.0", features = ["full"] }
+log = "0.4.27"
+anyhow = "1.0.98"
+reqwest = { version = "0.12.20", default-features = false, features = ["json", "rustls-tls", "rustls-tls-webpki-roots", "hickory-dns"] }

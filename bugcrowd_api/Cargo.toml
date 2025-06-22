@@ -1,0 +1,11 @@
+[package]
+name = "bugcrowd_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+log.workspace = true
+reqwest.workspace = true
+serde = { version = "1.0.219", features = ["derive"] }
+tokio.workspace = true
