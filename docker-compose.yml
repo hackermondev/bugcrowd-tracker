@@ -21,7 +21,6 @@ services:
       - REDIS_URL=redis://redis:6379
     env_file: .env
     restart: unless-stopped
-    command: ["/usr/local/bin/bugcrowd_tracker"]
 
 volumes:
   db_data:
