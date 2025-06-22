@@ -37,7 +37,9 @@ pub async fn send_webhook(webhook: &Webhook, embed: Embed) -> Result<(), anyhow:
             .get("retry-after")
             .map(|retry| retry.to_str().unwrap().parse::<u64>().unwrap());
         if retry_after.is_none() {
-            return Err(anyhow::Error::msg("rate limited, no retry-affter".to_string()));
+            return Err(anyhow::Error::msg(
+                "rate limited, no retry-affter".to_string(),
+            ));
         }
 
         let retry_after = retry_after.unwrap();
@@ -87,10 +89,21 @@ pub mod hall_of_fame {
         let embed = match event {
             Event::HeroAdded(hero) => {
                 let _hero = display(&hero);
-                let content = format!(
-                    "{_hero} was added to the leaderboard with **{} points** (rank: {})",
-                    hero.points, hero.rank
-                );
+                let breakdown = breakdown::calculate_points_breakdown(hero.points as i32);
+
+                let content = if let Some(breakdown) = breakdown {
+                    let breakdown = breakdown.to_string();
+                    format!(
+                        "{_hero} was added to the leaderboard with **{} points ({breakdown})** (rank: {})",
+                        hero.points, hero.rank
+                    )
+                } else {
+                    format!(
+                        "{_hero} was added to the leaderboard with **{} points** (rank: {})",
+                        hero.points, hero.rank
+                    )
+                };
+
                 EmbedBuilder::new()
                     .color(BUGCROWD_THEME_COLOR)
                     .description(content)
@@ -140,7 +153,7 @@ pub mod hall_of_fame {
                     let content = if let Some(breakdown) = breakdown {
                         let breakdown = breakdown.to_string();
                         format!(
-                            "{_hero} gained **+{gained} points** [{breakdown}] and now has **{} points**",
+                            "{_hero} gained **+{gained} points ({breakdown})** and now has **{} points**",
                             new.points
                         )
                     } else {

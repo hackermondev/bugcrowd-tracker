@@ -29,7 +29,7 @@ impl ToString for PointsBreakdown {
 
         add_part!(self.critical_bounty, "Critical", self.critical_bounty);
         add_part!(self.high_bounty, "High", self.high_bounty);
-        add_part!(self.moderate_bounty, "Moderate", self.moderate_bounty);
+        add_part!(self.moderate_bounty, "Medium", self.moderate_bounty);
         add_part!(self.low_bounty, "Low", self.low_bounty);
 
         parts.join(", ")
