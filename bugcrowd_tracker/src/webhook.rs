@@ -222,7 +222,7 @@ pub mod disclosed_reports {
             Event::ReportDisclosed(report) => {
                 let url = format!("https://bugcrowd.com{}", report.disclosure_report_url);
                 let reporter = if let Some(username) = report.researcher_username {
-                    format!("[**`{}`**](https://bugcrowd.com/{})", username, username)
+                    format!("[**`{}`**](https://bugcrowd.com/h/{})", username, username)
                 } else {
                     format!("Anonymous")
                 };
