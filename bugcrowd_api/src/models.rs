@@ -23,6 +23,8 @@ pub struct HallOfFameHeros {
     pub total: u64,
 }
 
+pub static ANONYMOUS_HERO_NAME: &str = "Private user";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Hero {
     #[serde(rename = "accentColor")]
@@ -50,7 +52,7 @@ where
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CrowdStream {
     pub pagination_meta: PaginationMeta,
-    pub results: Vec<DisclosedReport>
+    pub results: Vec<DisclosedReport>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]

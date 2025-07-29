@@ -55,7 +55,7 @@ pub async fn send_webhook(webhook: &Webhook, embed: Embed) -> Result<(), anyhow:
 }
 
 pub mod hall_of_fame {
-    use bugcrowd_api::models::Hero;
+    use bugcrowd_api::models::{ANONYMOUS_HERO_NAME, Hero};
     use log::{debug, error, info};
     use tokio::sync::mpsc::{Sender, channel};
     use twilight_util::builder::embed::{EmbedBuilder, EmbedFooterBuilder};
@@ -94,12 +94,12 @@ pub mod hall_of_fame {
                 let content = if let Some(breakdown) = breakdown {
                     let breakdown = breakdown.to_string();
                     format!(
-                        "{_hero} was added to the leaderboard with **{} points ({breakdown})** (rank: {})",
+                        "{_hero} was added to the leaderboard with **{} points ({breakdown})**\n-# (rank: #{})",
                         hero.points, hero.rank
                     )
                 } else {
                     format!(
-                        "{_hero} was added to the leaderboard with **{} points** (rank: {})",
+                        "{_hero} was added to the leaderboard with **{} points**\n-# (rank: #{})",
                         hero.points, hero.rank
                     )
                 };
@@ -113,13 +113,12 @@ pub mod hall_of_fame {
 
             Event::HeroRemoved(hero) => {
                 let _hero = display(&hero);
-                let content = format!(
-                    "{_hero} was removed from the leaderboard (rank: {})",
-                    hero.rank
-                );
+                let footer = format!("rank: {}", hero.rank);
+                let content = format!("{_hero} was removed from the leaderboard");
                 EmbedBuilder::new()
                     .color(FAILURE_COLOR)
                     .description(content)
+                    .footer(EmbedFooterBuilder::new(footer))
                     .validate()?
                     .build()
             }
@@ -186,6 +185,8 @@ pub mod hall_of_fame {
     fn display(hero: &Hero) -> String {
         if let Some(profile_url) = hero.profile_url.as_ref() {
             format!("[**`{}`**]({})", hero.username, profile_url)
+        } else if hero.username == ANONYMOUS_HERO_NAME {
+            "**Anonymous User**".to_string()
         } else {
             format!("**`{}`**", hero.username)
         }
@@ -224,7 +225,7 @@ pub mod disclosed_reports {
                 let reporter = if let Some(username) = report.researcher_username {
                     format!("[**`{}`**](https://bugcrowd.com/h/{})", username, username)
                 } else {
-                    format!("Anonymous")
+                    "Anonymous".to_string()
                 };
                 let severity = format!(
                     "{} (P{})",
@@ -247,7 +248,9 @@ pub mod disclosed_reports {
 
                 let reported = HumanTime::from(report.created_at);
                 let disclosed = HumanTime::from(report.disclosed_at);
-                let embed = embed.footer(EmbedFooterBuilder::new(format!("Reported {reported}, disclosed {disclosed}")));
+                let embed = embed.footer(EmbedFooterBuilder::new(format!(
+                    "Reported {reported}, disclosed {disclosed}"
+                )));
                 embed.build()
             }
         };

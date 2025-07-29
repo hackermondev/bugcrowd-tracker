@@ -6,7 +6,11 @@ use log::{error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter};
 use twilight_model::id::Id;
 
-use crate::{config::Arguments, store::{DisclosedReportsStore, HallOfFameStore}, webhook::Webhook};
+use crate::{
+    config::Arguments,
+    store::{DisclosedReportsStore, HallOfFameStore},
+    webhook::Webhook,
+};
 
 mod breakdown;
 mod config;
@@ -90,7 +94,10 @@ async fn main() {
             info!("started polling Crowdstream disclosed reports");
 
             loop {
-                poller.poll().await.expect("Crowdstream disclosed reports poll failed");
+                poller
+                    .poll()
+                    .await
+                    .expect("Crowdstream disclosed reports poll failed");
                 tokio::time::sleep(POLL_INTERVAL).await;
             }
         }));

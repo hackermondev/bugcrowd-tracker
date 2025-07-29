@@ -18,7 +18,9 @@ impl BugcrowdApi {
         let mut default_headers = HeaderMap::new();
         default_headers.insert(
             "user-agent",
-            HeaderValue::from_static("BugcrowdTracker/1.0"),
+            HeaderValue::from_static(
+                "BugcrowdTracker/1.0 (+https://github.com/hackermondev/bugcrowd-tracker)",
+            ),
         );
         if let Some(session_token) = session_token {
             default_headers.insert(
