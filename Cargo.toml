@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-rust-version = "1.87"
+rust-version = "1.88"
 members = [
     "bugcrowd_api",
     "bugcrowd_tracker"
