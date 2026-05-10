@@ -11,4 +11,6 @@ pub struct Arguments {
     pub engagement_handle: String,
     #[arg(short = 'W', long = "webhook-url", env = "DISCORD_WEBHOOK_URL")]
     pub discord_webhook_url: String,
+    #[arg(short = 'B', long = "blacklist-users", env = "BLACKLIST_USERS", value_delimiter = ',')]
+    pub blacklist_users: Vec<String>,
 }

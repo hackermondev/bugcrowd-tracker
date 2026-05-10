@@ -1,4 +1,6 @@
 pub mod hall_of_fame {
+    use std::sync::Arc;
+
     use bugcrowd_api::{
         client::BugcrowdApi,
         models::{ANONYMOUS_HERO_NAME, Hero},
@@ -11,8 +13,9 @@ pub mod hall_of_fame {
     pub struct Poller {
         pub bugcrowd: BugcrowdApi,
         pub store: HallOfFameStore,
-        pub program_handle: String,
         pub channel: Sender<Event>,
+        pub program_handle: Arc<String>,
+        pub blacklisted_users: Arc<Vec<String>>,
     }
 
     #[derive(Debug)]
@@ -27,7 +30,10 @@ pub mod hall_of_fame {
             debug!("polling hall of fame");
 
             let hall_of_fame = self.bugcrowd.hall_of_fame(&self.program_handle).await?;
-            let hall_of_fame: Vec<Hero> = hall_of_fame.into_iter().collect();
+            let hall_of_fame = hall_of_fame
+                .into_iter()
+                .filter(|hof| !self.blacklisted_users.contains(&hof.username))
+                .collect::<Vec<_>>();
             trace!("got heros: {hall_of_fame:?}");
 
             let updated_hof = hall_of_fame.clone();
@@ -64,7 +70,9 @@ pub mod hall_of_fame {
 }
 
 pub mod disclosed_reports {
-    use bugcrowd_api::{client::BugcrowdApi, models::DisclosedReport};
+    use std::sync::Arc;
+
+use bugcrowd_api::{client::BugcrowdApi, models::DisclosedReport};
     use log::debug;
     use tokio::sync::mpsc::Sender;
 
@@ -73,8 +81,9 @@ pub mod disclosed_reports {
     pub struct Poller {
         pub bugcrowd: BugcrowdApi,
         pub store: DisclosedReportsStore,
-        pub program_handle: String,
         pub channel: Sender<Event>,
+        pub program_handle: Arc<String>,
+        pub blacklisted_users: Arc<Vec<String>>,
     }
 
     #[derive(Debug)]
@@ -112,8 +121,12 @@ pub mod disclosed_reports {
                 .disclosed_reports_after(&self.program_handle, &last_disclosed.id)
                 .await?;
             if !new_disclosed.is_empty() {
-                let last_disclosed = new_disclosed.first().cloned().unwrap();
+                let last_disclosed = new_disclosed.last().cloned().unwrap();
                 for disclosed in new_disclosed {
+                    if let Some(researcher_username) = &disclosed.researcher_username && self.blacklisted_users.contains(researcher_username) {
+                        continue
+                    }
+                    
                     debug!("new disclosed report: {disclosed:?}");
                     self.channel.send(Event::ReportDisclosed(disclosed)).await?;
                 }

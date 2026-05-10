@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bugcrowd_api::models::{DisclosedReport, Hero};
 use redis::AsyncCommands;
 
@@ -5,7 +7,7 @@ type RedisConnection = redis::aio::ConnectionManager;
 
 // ==== Hall Of Fame ====
 pub struct HallOfFameStore {
-    pub program_handle: String,
+    pub program_handle: Arc<String>,
     pub redis_connection: RedisConnection,
 }
 
@@ -41,7 +43,7 @@ impl HallOfFameStore {
 
 // ==== Disclosed Reports ====
 pub struct DisclosedReportsStore {
-    pub program_handle: String,
+    pub program_handle: Arc<String>,
     pub redis_connection: RedisConnection,
 }
 

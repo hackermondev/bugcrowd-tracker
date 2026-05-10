@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use bugcrowd_api::client::BugcrowdApi;
 use clap::Parser;
@@ -27,9 +27,10 @@ async fn main() {
 
     let config = Arguments::parse();
     let bugcrowd_api = BugcrowdApi::new(config.bugcrowd_session_token);
-    let program_handle = config.engagement_handle;
+    let program_handle = Arc::new(config.engagement_handle);
     let webhook =
         extract_webhook(&config.discord_webhook_url).expect("Invalid Discord webhook URL");
+    let blacklisted_users = Arc::new(config.blacklist_users);
 
     let redis = redis::Client::open(config.redis).expect("Invalid Redis connection URI");
     let redis = redis
@@ -60,8 +61,9 @@ async fn main() {
         let mut poller = poll::hall_of_fame::Poller {
             bugcrowd: bugcrowd_api.clone(),
             store,
-            program_handle: program_handle.clone(),
             channel,
+            program_handle: program_handle.clone(),
+            blacklisted_users: blacklisted_users.clone(),
         };
 
         const POLL_INTERVAL: Duration = Duration::from_secs(60 * 3);
@@ -85,8 +87,9 @@ async fn main() {
         let mut poller = poll::disclosed_reports::Poller {
             bugcrowd: bugcrowd_api.clone(),
             store,
-            program_handle: program_handle.clone(),
             channel,
+            program_handle: program_handle.clone(),
+            blacklisted_users: blacklisted_users.clone(),
         };
 
         const POLL_INTERVAL: Duration = Duration::from_secs(60 * 5);
