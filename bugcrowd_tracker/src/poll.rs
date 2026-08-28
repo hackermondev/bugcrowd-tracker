@@ -5,7 +5,7 @@ pub mod hall_of_fame {
         client::BugcrowdApi,
         models::{ANONYMOUS_HERO_NAME, Hero},
     };
-    use log::{debug, trace};
+    use log::{debug, info, trace};
     use tokio::sync::mpsc::Sender;
 
     use crate::store::hall_of_fame::HallOfFameStore;
@@ -48,9 +48,10 @@ pub mod hall_of_fame {
 
                 if old_hero.is_none() {
                     if is_first_run && self.ignore_first_run {
+                        info!("ignorning new hero (first run): {hero:?}");
                         continue;
                     }
-                    
+
                     self.channel.send(Event::HeroAdded(hero)).await?;
                     continue;
                 }
