@@ -37,10 +37,9 @@ pub mod hall_of_fame {
                 .collect::<Vec<_>>();
             trace!("got heros: {hall_of_fame:?}");
 
-            let is_first_run = hall_of_fame.len() == 0;
-
             let updated_hof = hall_of_fame.clone();
             let mut saved_hof = self.store.heros().await?;
+            let is_first_run = saved_hof.is_empty();
 
             for hero in updated_hof {
                 let anonymous = hero.username == ANONYMOUS_HERO_NAME;
