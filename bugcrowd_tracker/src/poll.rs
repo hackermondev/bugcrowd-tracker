@@ -8,13 +8,13 @@ pub mod hall_of_fame {
     use log::{debug, trace};
     use tokio::sync::mpsc::Sender;
 
-    use crate::store::HallOfFameStore;
+    use crate::store::hall_of_fame::HallOfFameStore;
 
     pub struct Poller {
         pub bugcrowd: BugcrowdApi,
         pub store: HallOfFameStore,
         pub channel: Sender<Event>,
-        pub program_handle: Arc<String>,
+        pub program_handle: Arc<str>,
         pub blacklisted_users: Arc<Vec<String>>,
     }
 
@@ -72,17 +72,17 @@ pub mod hall_of_fame {
 pub mod disclosed_reports {
     use std::sync::Arc;
 
-use bugcrowd_api::{client::BugcrowdApi, models::DisclosedReport};
+    use bugcrowd_api::{client::BugcrowdApi, models::DisclosedReport};
     use log::debug;
     use tokio::sync::mpsc::Sender;
 
-    use crate::store::DisclosedReportsStore;
+    use crate::store::disclosed_reports::DisclosedReportsStore;
 
     pub struct Poller {
         pub bugcrowd: BugcrowdApi,
         pub store: DisclosedReportsStore,
         pub channel: Sender<Event>,
-        pub program_handle: Arc<String>,
+        pub program_handle: Arc<str>,
         pub blacklisted_users: Arc<Vec<String>>,
     }
 
@@ -123,10 +123,12 @@ use bugcrowd_api::{client::BugcrowdApi, models::DisclosedReport};
             if !new_disclosed.is_empty() {
                 let last_disclosed = new_disclosed.last().cloned().unwrap();
                 for disclosed in new_disclosed {
-                    if let Some(researcher_username) = &disclosed.researcher_username && self.blacklisted_users.contains(researcher_username) {
-                        continue
+                    if let Some(researcher_username) = &disclosed.researcher_username
+                        && self.blacklisted_users.contains(researcher_username)
+                    {
+                        continue;
                     }
-                    
+
                     debug!("new disclosed report: {disclosed:?}");
                     self.channel.send(Event::ReportDisclosed(disclosed)).await?;
                 }

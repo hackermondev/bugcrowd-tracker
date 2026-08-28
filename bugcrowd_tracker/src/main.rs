@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{pin::Pin, sync::Arc, time::Duration};
 
 use bugcrowd_api::client::BugcrowdApi;
 use clap::Parser;
@@ -8,7 +8,7 @@ use twilight_model::id::Id;
 
 use crate::{
     config::Arguments,
-    store::{DisclosedReportsStore, HallOfFameStore},
+    store::{disclosed_reports::DisclosedReportsStore, hall_of_fame::HallOfFameStore},
     webhook::Webhook,
 };
 
@@ -27,7 +27,7 @@ async fn main() {
 
     let config = Arguments::parse();
     let bugcrowd_api = BugcrowdApi::new(config.bugcrowd_session_token);
-    let program_handle = Arc::new(config.engagement_handle);
+    let program_handle = Arc::<str>::from(config.engagement_handle);
     let webhook =
         extract_webhook(&config.discord_webhook_url).expect("Invalid Discord webhook URL");
     let blacklisted_users = Arc::new(config.blacklist_users);
@@ -49,10 +49,7 @@ async fn main() {
         return;
     }
 
-    let mut polls = vec![];
-
-    // ==== Hall Of Fame ====
-    {
+    let hall_of_fame_poller = Box::pin(async {
         let store = HallOfFameStore {
             program_handle: program_handle.clone(),
             redis_connection: redis.clone(),
@@ -67,18 +64,20 @@ async fn main() {
         };
 
         const POLL_INTERVAL: Duration = Duration::from_secs(60 * 3);
-        polls.push(tokio::task::spawn(async move {
-            info!("started polling hall of fame");
+        info!("started polling hall of fame");
 
-            loop {
-                poller.poll().await.expect("hall of fame poll failed");
-                tokio::time::sleep(POLL_INTERVAL).await;
+        loop {
+            let poll_result = poller.poll().await;
+            if poll_result.is_err() {
+                poll_result.expect("Hall of fame polling failed");
+                break;
             }
-        }));
-    }
 
-    // ==== Crowdstream Disclosed Reports ====
-    {
+            tokio::time::sleep(POLL_INTERVAL).await;
+        }
+    }) as Pin<Box<dyn Future<Output = ()>>>;
+
+    let crowdstream_disclosed_reports_poller = Box::pin(async {
         let store = DisclosedReportsStore {
             program_handle: program_handle.clone(),
             redis_connection: redis.clone(),
@@ -93,20 +92,20 @@ async fn main() {
         };
 
         const POLL_INTERVAL: Duration = Duration::from_secs(60 * 5);
-        polls.push(tokio::task::spawn(async move {
-            info!("started polling Crowdstream disclosed reports");
+        info!("started polling Crowdstream disclosed reports");
 
-            loop {
-                poller
-                    .poll()
-                    .await
-                    .expect("Crowdstream disclosed reports poll failed");
-                tokio::time::sleep(POLL_INTERVAL).await;
+        loop {
+            let poll_result = poller.poll().await;
+            if poll_result.is_err() {
+                poll_result.expect("Crowdstream disclosed reports poll failed");
+                break;
             }
-        }));
-    }
 
-    let _ = futures::future::select_all(polls).await;
+            tokio::time::sleep(POLL_INTERVAL).await;
+        }
+    }) as Pin<Box<dyn Future<Output = ()>>>;
+
+    futures::future::join_all([hall_of_fame_poller, crowdstream_disclosed_reports_poller]).await;
 }
 
 fn extract_webhook(url: &str) -> Option<Webhook> {
