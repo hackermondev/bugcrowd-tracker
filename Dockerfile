@@ -1,4 +1,4 @@
-FROM rust:1.88 as builder
+FROM rust:1.96 as builder
 WORKDIR /usr/src/bugcrowd_tracker
 
 COPY . .
