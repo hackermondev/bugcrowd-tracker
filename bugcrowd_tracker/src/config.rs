@@ -13,4 +13,6 @@ pub struct Arguments {
     pub discord_webhook_url: String,
     #[arg(short = 'B', long = "blacklist-users", env = "BLACKLIST_USERS", value_delimiter = ',')]
     pub blacklist_users: Vec<String>,
+    #[arg(long, env = "IGNORE_FIRST_RUN")]
+    pub ignore_first_run: Option<bool>
 }

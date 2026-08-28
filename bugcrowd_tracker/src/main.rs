@@ -61,6 +61,7 @@ async fn main() {
             channel,
             program_handle: program_handle.clone(),
             blacklisted_users: blacklisted_users.clone(),
+            ignore_first_run: config.ignore_first_run.unwrap_or(false),
         };
 
         const POLL_INTERVAL: Duration = Duration::from_secs(60 * 3);

@@ -16,6 +16,7 @@ pub mod hall_of_fame {
         pub channel: Sender<Event>,
         pub program_handle: Arc<str>,
         pub blacklisted_users: Arc<Vec<String>>,
+        pub ignore_first_run: bool
     }
 
     #[derive(Debug)]
@@ -36,6 +37,8 @@ pub mod hall_of_fame {
                 .collect::<Vec<_>>();
             trace!("got heros: {hall_of_fame:?}");
 
+            let is_first_run = hall_of_fame.len() == 0;
+
             let updated_hof = hall_of_fame.clone();
             let mut saved_hof = self.store.heros().await?;
 
@@ -44,6 +47,10 @@ pub mod hall_of_fame {
                 let old_hero = saved_hof.iter().position(|h| h.username == hero.username);
 
                 if old_hero.is_none() {
+                    if is_first_run && self.ignore_first_run {
+                        continue;
+                    }
+                    
                     self.channel.send(Event::HeroAdded(hero)).await?;
                     continue;
                 }
