@@ -73,8 +73,9 @@ impl BugcrowdApi {
             }
         }
 
-        heros.sort_by_key(|h| h.points);
+        heros.sort_by_key(|h| (h.username.clone(), h.points));
         heros.reverse();
+
         let heros = heros
             .into_iter()
             .enumerate()

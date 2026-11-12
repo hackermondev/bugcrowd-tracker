@@ -37,11 +37,10 @@ pub mod hall_of_fame {
                 .collect::<Vec<_>>();
             trace!("got heros: {hall_of_fame:?}");
 
-            let updated_hof = hall_of_fame.clone();
             let mut saved_hof = self.store.heros().await?;
             let is_first_run = saved_hof.is_empty();
 
-            for hero in updated_hof {
+            for hero in &hall_of_fame {
                 let anonymous = hero.username == ANONYMOUS_HERO_NAME;
                 let old_hero = saved_hof.iter().position(|h| h.username == hero.username);
 
@@ -51,7 +50,7 @@ pub mod hall_of_fame {
                         continue;
                     }
 
-                    self.channel.send(Event::HeroAdded(hero)).await?;
+                    self.channel.send(Event::HeroAdded(hero.clone())).await?;
                     continue;
                 }
 
@@ -60,7 +59,7 @@ pub mod hall_of_fame {
                 if hero.points != old_hero.points && !anonymous {
                     debug!("updated {old_hero:?} -> {hero:?}");
                     self.channel
-                        .send(Event::HeroUpdated(old_hero, hero))
+                        .send(Event::HeroUpdated(old_hero, hero.clone()))
                         .await?;
                 }
             }
