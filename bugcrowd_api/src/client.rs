@@ -83,6 +83,7 @@ impl BugcrowdApi {
         }
 
         heros.sort_by_key(|h| (h.points, h.username.clone()));
+        heros.dedup_by_key(|h| h.username.clone());
         heros.reverse();
 
         let heros = heros

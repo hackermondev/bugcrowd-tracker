@@ -64,6 +64,7 @@ async fn main() {
             program_handle: program_handle.clone(),
             blacklisted_users: blacklisted_users.clone(),
             ignore_first_run: config.ignore_first_run.unwrap_or(false),
+            ignore_removed_hof_users: config.ignore_removed_hof_users,
         };
 
         info!("started polling hall of fame");

@@ -5,7 +5,7 @@ pub mod hall_of_fame {
         client::BugcrowdApi,
         models::{ANONYMOUS_HERO_NAME, Hero},
     };
-    use log::{debug, info, trace};
+    use log::{debug, info};
     use tokio::sync::mpsc::Sender;
 
     use crate::store::hall_of_fame::HallOfFameStore;
@@ -16,7 +16,8 @@ pub mod hall_of_fame {
         pub channel: Sender<Event>,
         pub program_handle: Arc<str>,
         pub blacklisted_users: Arc<Vec<String>>,
-        pub ignore_first_run: bool
+        pub ignore_first_run: bool,
+        pub ignore_removed_hof_users: bool
     }
 
     #[derive(Debug)]
@@ -33,7 +34,7 @@ pub mod hall_of_fame {
             let hall_of_fame = self.bugcrowd.hall_of_fame(&self.program_handle).await?;
             let saved_hall_of_fame = self.store.heros().await?;
 
-            let hall_of_fame = hall_of_fame
+            let mut hall_of_fame = hall_of_fame
                 .into_iter()
                 .filter(|hof| !self.blacklisted_users.contains(&hof.username))
                 .collect::<Vec<_>>();
@@ -68,11 +69,15 @@ pub mod hall_of_fame {
                 }
             }
 
-            for removed_hero in saved_hall_of_fame {
-                debug!("removed {removed_hero:?}");
-                self.channel.send(Event::HeroRemoved(removed_hero)).await?;
+            if !self.ignore_removed_hof_users {
+                for removed_hero in saved_hall_of_fame {
+                    debug!("removed {removed_hero:?}");
+                    self.channel.send(Event::HeroRemoved(removed_hero)).await?;
+                }
+            } else {
+                hall_of_fame.append(&mut saved_hall_of_fame);
             }
-
+            
             self.store.save_heros(hall_of_fame).await?;
             Ok(())
         }

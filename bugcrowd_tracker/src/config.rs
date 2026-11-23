@@ -13,10 +13,20 @@ pub struct Arguments {
     pub engagement_handle: String,
     #[arg(short = 'W', long = "webhook-url", env = "DISCORD_WEBHOOK_URL")]
     pub discord_webhook_url: String,
-    #[arg(short = 'B', long = "blacklist-users", env = "BLACKLIST_USERS", value_delimiter = ',')]
+    #[arg(
+        short = 'B',
+        long = "blacklist-users",
+        env = "BLACKLIST_USERS",
+        value_delimiter = ','
+    )]
     pub blacklist_users: Vec<String>,
     #[arg(long, env = "IGNORE_FIRST_RUN")]
     pub ignore_first_run: Option<bool>,
+    /// Don't send events for removed users on the Hall of Fame
+    /// this configuration exists a temporary workaround against a bug
+    /// with Bugcrowd's API returning inconsistent hall of fame data
+    #[arg(long, env = "HOF_IGNORE_REMOVED_USERS", default_value_t = false)]
+    pub ignore_removed_hof_users: bool,
     #[arg(long, env = "POLL_INTERVAL", value_parser = humantime::parse_duration)]
     pub poll_interval: Option<Duration>,
 }
