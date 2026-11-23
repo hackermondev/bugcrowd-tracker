@@ -17,3 +17,4 @@ twilight-util = { version = "0.16.0", features = ["builder"] }
 clap = { version = "4.0", features = ["derive", "env"] }
 futures = "0.3.31"
 chrono-humanize = "0.2.3"
+humantime = "2.4.0"

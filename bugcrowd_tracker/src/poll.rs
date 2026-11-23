@@ -31,18 +31,22 @@ pub mod hall_of_fame {
             debug!("polling hall of fame");
 
             let hall_of_fame = self.bugcrowd.hall_of_fame(&self.program_handle).await?;
+            let saved_hall_of_fame = self.store.heros().await?;
+
             let hall_of_fame = hall_of_fame
                 .into_iter()
                 .filter(|hof| !self.blacklisted_users.contains(&hof.username))
                 .collect::<Vec<_>>();
-            trace!("got heros: {hall_of_fame:?}");
+            let mut saved_hall_of_fame = saved_hall_of_fame
+                .into_iter()
+                .filter(|hof| !self.blacklisted_users.contains(&hof.username))
+                .collect::<Vec<_>>();
 
-            let mut saved_hof = self.store.heros().await?;
-            let is_first_run = saved_hof.is_empty();
+            let is_first_run = saved_hall_of_fame.is_empty();
 
             for hero in &hall_of_fame {
                 let anonymous = hero.username == ANONYMOUS_HERO_NAME;
-                let old_hero = saved_hof.iter().position(|h| h.username == hero.username);
+                let old_hero = saved_hall_of_fame.iter().position(|h| h.username == hero.username);
 
                 if old_hero.is_none() {
                     if is_first_run && self.ignore_first_run {
@@ -55,7 +59,7 @@ pub mod hall_of_fame {
                 }
 
                 let old_hero = old_hero.unwrap();
-                let old_hero = saved_hof.remove(old_hero);
+                let old_hero = saved_hall_of_fame.remove(old_hero);
                 if hero.points != old_hero.points && !anonymous {
                     debug!("updated {old_hero:?} -> {hero:?}");
                     self.channel
@@ -64,7 +68,7 @@ pub mod hall_of_fame {
                 }
             }
 
-            for removed_hero in saved_hof {
+            for removed_hero in saved_hall_of_fame {
                 debug!("removed {removed_hero:?}");
                 self.channel.send(Event::HeroRemoved(removed_hero)).await?;
             }

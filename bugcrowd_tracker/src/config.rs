@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use clap::Parser;
 
 #[derive(Default, Debug, Parser)]
@@ -14,5 +16,7 @@ pub struct Arguments {
     #[arg(short = 'B', long = "blacklist-users", env = "BLACKLIST_USERS", value_delimiter = ',')]
     pub blacklist_users: Vec<String>,
     #[arg(long, env = "IGNORE_FIRST_RUN")]
-    pub ignore_first_run: Option<bool>
+    pub ignore_first_run: Option<bool>,
+    #[arg(long, env = "POLL_INTERVAL", value_parser = humantime::parse_duration)]
+    pub poll_interval: Option<Duration>,
 }

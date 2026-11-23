@@ -6,7 +6,9 @@ use redis::AsyncCommands;
 type RedisConnection = redis::aio::ConnectionManager;
 
 pub mod hall_of_fame {
-    use super::*;
+    use log::trace;
+
+use super::*;
 
     pub struct HallOfFameStore {
         pub program_handle: Arc<str>,
@@ -25,6 +27,8 @@ pub mod hall_of_fame {
                 .into_iter()
                 .map(|hero| serde_json::from_str(&hero).unwrap())
                 .collect();
+
+            trace!("fetched saved hall of fame: {heros:?}");
             Ok(heros)
         }
 
@@ -33,12 +37,13 @@ pub mod hall_of_fame {
             let key = self.key();
 
             pipeline.del(&key).ignore();
-            for hero in heros {
+            for hero in &heros {
                 let hero = serde_json::to_string(&hero)?;
                 pipeline.sadd(&key, hero).ignore();
             }
 
             pipeline.exec_async(&mut self.redis_connection).await?;
+            trace!("saved new hall of fame: {heros:?}");
             Ok(())
         }
     }

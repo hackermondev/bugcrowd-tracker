@@ -49,6 +49,8 @@ async fn main() {
         return;
     }
 
+    let poll_interval = config.poll_interval.unwrap_or(Duration::from_mins(3));
+    
     let hall_of_fame_poller = Box::pin(async {
         let store = HallOfFameStore {
             program_handle: program_handle.clone(),
@@ -64,7 +66,6 @@ async fn main() {
             ignore_first_run: config.ignore_first_run.unwrap_or(false),
         };
 
-        const POLL_INTERVAL: Duration = Duration::from_secs(60 * 3);
         info!("started polling hall of fame");
 
         loop {
@@ -74,7 +75,7 @@ async fn main() {
                 break;
             }
 
-            tokio::time::sleep(POLL_INTERVAL).await;
+            tokio::time::sleep(poll_interval).await;
         }
     }) as Pin<Box<dyn Future<Output = ()>>>;
 
@@ -92,7 +93,6 @@ async fn main() {
             blacklisted_users: blacklisted_users.clone(),
         };
 
-        const POLL_INTERVAL: Duration = Duration::from_secs(60 * 5);
         info!("started polling Crowdstream disclosed reports");
 
         loop {
@@ -102,7 +102,7 @@ async fn main() {
                 break;
             }
 
-            tokio::time::sleep(POLL_INTERVAL).await;
+            tokio::time::sleep(poll_interval).await;
         }
     }) as Pin<Box<dyn Future<Output = ()>>>;
 

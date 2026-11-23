@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use log::{debug, error};
+use log::{debug, error, trace};
 use reqwest::{
     Client, ClientBuilder, Method,
     header::{HeaderMap, HeaderValue},
@@ -16,12 +16,19 @@ pub struct BugcrowdApi {
 impl BugcrowdApi {
     pub fn new(session_token: Option<String>) -> Self {
         let mut default_headers = HeaderMap::new();
+        // default_headers.insert(
+        //     "user-agent",
+        //     HeaderValue::from_static(
+        //         "BugcrowdTracker/1.0 (+https://github.com/hackermondev/bugcrowd-tracker)",
+        //     ),
+        // );
         default_headers.insert(
             "user-agent",
             HeaderValue::from_static(
-                "BugcrowdTracker/1.0 (+https://github.com/hackermondev/bugcrowd-tracker)",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
             ),
         );
+
         if let Some(session_token) = session_token {
             default_headers.insert(
                 "Cookie",
@@ -63,6 +70,8 @@ impl BugcrowdApi {
             let response = response.error_for_status()?;
 
             let mut hof = response.json::<HallOfFame>().await?;
+            trace!("{program}'s hall of fame response (page #{page}): {hof:?}");
+
             heros.append(&mut hof.presented_heroes.heroes);
             page += 1;
 
@@ -73,7 +82,7 @@ impl BugcrowdApi {
             }
         }
 
-        heros.sort_by_key(|h| (h.username.clone(), h.points));
+        heros.sort_by_key(|h| (h.points, h.username.clone()));
         heros.reverse();
 
         let heros = heros
@@ -84,6 +93,8 @@ impl BugcrowdApi {
                 ..hero
             })
             .collect();
+        debug!("{program}'s hall of fame: {heros:?}");
+
         Ok(heros)
     }
 
@@ -99,6 +110,8 @@ impl BugcrowdApi {
 
         let crowdstream = response.json::<CrowdStream>().await?;
         let mut reports = crowdstream.results;
+        debug!("{program}'s disclosed reports: {reports:?}");
+
         Ok(if !reports.is_empty() {
             Some(reports.remove(0))
         } else {
@@ -135,6 +148,7 @@ impl BugcrowdApi {
                 break;
             }
         }
+        trace!("{program}'s disclosed reports after {id}: {reports:?}");
 
         Ok(reports)
     }
